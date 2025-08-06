@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: diet-backend
+    env: node
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: diet-database
+          property: connectionString
+      - key: FRONTEND_URL
+        value: https://diet-app-frontend.onrender.com
+    healthCheckPath: /api
+
+databases:
+  - name: diet-database
+    databaseName: diet_db
+    user: diet_user
