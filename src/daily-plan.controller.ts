@@ -9,6 +9,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DailyPlanService } from './daily-plan.service';
+import { DiagnosisService } from './diagnosis.service';
 import { DailyPlan, Prisma } from '@prisma/client';
 
 type DailyPlanWithIngredients = DailyPlan & {
@@ -32,34 +33,75 @@ type DailyPlanWithIngredients = DailyPlan & {
   };
 };
 
+// Тип для ответа фронтенду
+interface DailyPlanResponseDto {
+  allowedFoods: string[];
+  prohibitedFoods: string[];
+  dailyPlan: Array<{
+    time: string;
+    mealKey: string;
+    ingredients: string[];
+    weight_grams: number | null;
+    nutrition: {
+      calories: number | null;
+      proteins: number | null;
+      fats: number | null;
+      carbs: number | null;
+    };
+  }>;
+}
+
 @Controller('daily-plan')
 export class DailyPlanController {
-  constructor(private readonly dailyPlanService: DailyPlanService) {}
-
-  // Utility function to ensure ingredients is always an array
-  private ensureSafeIngredients(dailyPlan: DailyPlanWithIngredients): DailyPlanWithIngredients {
-    if (!dailyPlan.ingredients) {
-      dailyPlan.ingredients = [];
-    }
-    return dailyPlan;
-  }
+  constructor(
+    private readonly dailyPlanService: DailyPlanService,
+    private readonly diagnosisService: DiagnosisService,
+  ) {}
 
   @Get()
   async getAllDailyPlans(): Promise<DailyPlanWithIngredients[]> {
-    const dailyPlans = await this.dailyPlanService.findAllDailyPlans();
-    // The service already handles safe ingredients, but we ensure it here too
-    return dailyPlans.map(plan => this.ensureSafeIngredients(plan));
+    return await this.dailyPlanService.findAllDailyPlans();
   }
 
   @Get(':diagnosisId')
-  async getDailyPlansByDiagnosis(
-    @Param('diagnosisId') diagnosisId: string,
-  ): Promise<DailyPlanWithIngredients[]> {
-    const dailyPlans = await this.dailyPlanService.findDailyPlansByDiagnosis(
-      parseInt(diagnosisId),
-    );
-    // The service already handles safe ingredients, but we ensure it here too
-    return dailyPlans.map(plan => this.ensureSafeIngredients(plan));
+  async getDailyPlanByDiagnosisId(@Param('diagnosisId') diagnosisId: string): Promise<DailyPlanResponseDto> {
+    const diagnosis = await this.diagnosisService.findDiagnosisById(parseInt(diagnosisId));
+    
+    if (!diagnosis) {
+      throw new NotFoundException('Diagnosis not found');
+    }
+
+    // Разделяем продукты на разрешенные и запрещенные
+    const allowedFoods: string[] = [];
+    const prohibitedFoods: string[] = [];
+
+    diagnosis.foods.forEach(relation => {
+      if (relation.allowed) {
+        allowedFoods.push(relation.food.code);
+      } else {
+        prohibitedFoods.push(relation.food.code);
+      }
+    });
+
+    // Формируем daily plan в нужном формате
+    const dailyPlan = diagnosis.dailyPlans.map(plan => ({
+      time: plan.time,
+      mealKey: plan.mealKey,
+      ingredients: plan.ingredients.map(ingredient => ingredient.food.code),
+      weight_grams: plan.weightGrams,
+      nutrition: {
+        calories: plan.calories,
+        proteins: plan.proteins,
+        fats: plan.fats,
+        carbs: plan.carbs,
+      },
+    }));
+
+    return {
+      allowedFoods,
+      prohibitedFoods,
+      dailyPlan,
+    };
   }
 
   @Get('id/:id')
@@ -68,17 +110,13 @@ export class DailyPlanController {
     if (!dailyPlan) {
       throw new NotFoundException('Daily plan not found');
     }
-    // The service already handles safe ingredients, but we ensure it here too
-    return this.ensureSafeIngredients(dailyPlan);
+    return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
   }
 
   @Post()
-  async createDailyPlan(
-    @Body() createDailyPlanDto: Prisma.DailyPlanCreateInput,
-  ): Promise<DailyPlanWithIngredients> {
-    const dailyPlan = await this.dailyPlanService.createDailyPlan(createDailyPlanDto);
-    // The service already handles safe ingredients, but we ensure it here too
-    return this.ensureSafeIngredients(dailyPlan);
+  async createDailyPlan(@Body() createDto: Prisma.DailyPlanCreateInput): Promise<DailyPlanWithIngredients> {
+    const dailyPlan = await this.dailyPlanService.createDailyPlan(createDto);
+    return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
   }
 
   @Post('with-ingredients')
@@ -100,27 +138,20 @@ export class DailyPlanController {
       dailyPlanData,
       ingredients,
     );
-    // The service already handles safe ingredients, but we ensure it here too
-    return this.ensureSafeIngredients(dailyPlan);
+    return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
   }
 
   @Put(':id')
   async updateDailyPlan(
     @Param('id') id: string,
-    @Body() updateDailyPlanDto: Prisma.DailyPlanUpdateInput,
+    @Body() updateDto: Prisma.DailyPlanUpdateInput,
   ): Promise<DailyPlanWithIngredients> {
-    const dailyPlan = await this.dailyPlanService.updateDailyPlan(
-      parseInt(id),
-      updateDailyPlanDto,
-    );
-    // The service already handles safe ingredients, but we ensure it here too
-    return this.ensureSafeIngredients(dailyPlan);
+    const dailyPlan = await this.dailyPlanService.updateDailyPlan(parseInt(id), updateDto);
+    return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
   }
 
   @Delete(':id')
-  async deleteDailyPlan(@Param('id') id: string): Promise<DailyPlanWithIngredients> {
-    const dailyPlan = await this.dailyPlanService.deleteDailyPlan(parseInt(id));
-    // The service already handles safe ingredients, but we ensure it here too
-    return this.ensureSafeIngredients(dailyPlan);
+  async deleteDailyPlan(@Param('id') id: string): Promise<DailyPlan> {
+    return await this.dailyPlanService.deleteDailyPlan(parseInt(id));
   }
 }

@@ -28,7 +28,7 @@ export class DailyPlanService {
   constructor(private prisma: PrismaService) {}
 
   // Utility function to ensure ingredients is always an array
-  private ensureSafeIngredients(dailyPlan: DailyPlanWithIngredients): DailyPlanWithIngredients {
+  public ensureSafeIngredients(dailyPlan: DailyPlanWithIngredients): DailyPlanWithIngredients {
     if (!dailyPlan.ingredients) {
       dailyPlan.ingredients = [];
     }
