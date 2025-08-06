@@ -19,6 +19,7 @@ interface DiagnosisResponseDto {
   recommendedCalories: {
     min: number;
     max: number;
+    unit: string;
   };
   foods: Array<{
     diagnosisId: number;
@@ -69,6 +70,7 @@ export class DiagnosisController {
       recommendedCalories: {
         min: diagnosis.recommendedMinKcal || 0,
         max: diagnosis.recommendedMaxKcal || 0,
+        unit: 'kcal',
       },
       foods: diagnosis.foods || [],
       dailyPlans: diagnosis.dailyPlans || [],
@@ -88,6 +90,7 @@ export class DiagnosisController {
       recommendedCalories: {
         min: diagnosis.recommendedMinKcal || 0,
         max: diagnosis.recommendedMaxKcal || 0,
+        unit: 'kcal',
       },
       foods: diagnosis.foods || [],
       dailyPlans: diagnosis.dailyPlans || [],
@@ -107,6 +110,7 @@ export class DiagnosisController {
       recommendedCalories: {
         min: diagnosis.recommendedMinKcal || 0,
         max: diagnosis.recommendedMaxKcal || 0,
+        unit: 'kcal',
       },
       foods: diagnosis.foods || [],
       dailyPlans: diagnosis.dailyPlans || [],

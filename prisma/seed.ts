@@ -18,9 +18,15 @@ async function main() {
   for (const d of diagnoses) {
     console.log(`📋 Processing diagnosis: ${d.id}`);
     
-    // Create diagnosis
-    const diagnosis = await prisma.diagnosis.create({
-      data: {
+    // Create or update diagnosis
+    const diagnosis = await prisma.diagnosis.upsert({
+      where: { code: d.id },
+      update: {
+        recommendedMinKcal: d.recommendedCalories.min,
+        recommendedMaxKcal: d.recommendedCalories.max,
+        description: '',
+      },
+      create: {
         code: d.id,
         recommendedMinKcal: d.recommendedCalories.min,
         recommendedMaxKcal: d.recommendedCalories.max,
@@ -29,7 +35,7 @@ async function main() {
     });
     totalDiagnoses++;
 
-    console.log(`✅ Created diagnosis: ${diagnosis.code} (ID: ${diagnosis.id})`);
+    console.log(`✅ Created/Updated diagnosis: ${diagnosis.code} (ID: ${diagnosis.id})`);
 
     // Foods (allowed)
     console.log(`🍎 Processing ${d.allowedFoods.length} allowed foods...`);
@@ -40,8 +46,15 @@ async function main() {
         create: { code: f },
       });
       
-      await prisma.diagnosisFoodRelation.create({
-        data: {
+      await prisma.diagnosisFoodRelation.upsert({
+        where: {
+          diagnosisId_foodId: {
+            diagnosisId: diagnosis.id,
+            foodId: food.id,
+          },
+        },
+        update: { allowed: true },
+        create: {
           diagnosisId: diagnosis.id,
           foodId: food.id,
           allowed: true,
@@ -60,8 +73,15 @@ async function main() {
         create: { code: f },
       });
       
-      await prisma.diagnosisFoodRelation.create({
-        data: {
+      await prisma.diagnosisFoodRelation.upsert({
+        where: {
+          diagnosisId_foodId: {
+            diagnosisId: diagnosis.id,
+            foodId: food.id,
+          },
+        },
+        update: { allowed: false },
+        create: {
           diagnosisId: diagnosis.id,
           foodId: food.id,
           allowed: false,
@@ -70,6 +90,18 @@ async function main() {
       totalFoods++;
       totalRelations++;
     }
+
+    // Clear existing daily plans for this diagnosis
+    await prisma.dailyPlanIngredient.deleteMany({
+      where: {
+        dailyPlan: {
+          diagnosisId: diagnosis.id,
+        },
+      },
+    });
+    await prisma.dailyPlan.deleteMany({
+      where: { diagnosisId: diagnosis.id },
+    });
 
     // Daily plans
     console.log(`📅 Processing ${d.dailyPlan.length} daily plans...`);

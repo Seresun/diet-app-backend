@@ -33,23 +33,32 @@ type DailyPlanWithIngredients = DailyPlan & {
   };
 };
 
-// Тип для ответа фронтенду
+// Обновленный тип для ответа фронтенду
 interface DailyPlanResponseDto {
+  id: number;
+  code: string;
+  recommendedCalories: {
+    min: number | null;
+    max: number | null;
+    unit: string;
+  };
   allowedFoods: string[];
   prohibitedFoods: string[];
   dailyPlan: Array<{
-    time: string;
     mealKey: string;
     ingredients: string[];
-    weight_grams: number | null;
+    time: string;
     nutrition: {
       calories: number | null;
       proteins: number | null;
       fats: number | null;
       carbs: number | null;
     };
+    weight_grams: number | null;
   }>;
 }
+
+
 
 @Controller('daily-plan')
 export class DailyPlanController {
@@ -85,32 +94,85 @@ export class DailyPlanController {
 
     // Формируем daily plan в нужном формате
     const dailyPlan = diagnosis.dailyPlans.map(plan => ({
-      time: plan.time,
       mealKey: plan.mealKey,
       ingredients: plan.ingredients.map(ingredient => ingredient.food.code),
-      weight_grams: plan.weightGrams,
+      time: plan.time,
       nutrition: {
         calories: plan.calories,
         proteins: plan.proteins,
         fats: plan.fats,
         carbs: plan.carbs,
       },
+      weight_grams: plan.weightGrams,
     }));
 
+    // Формируем recommendedCalories
+    const recommendedCalories = {
+      min: diagnosis.recommendedMinKcal,
+      max: diagnosis.recommendedMaxKcal,
+      unit: 'kcal',
+    };
+
     return {
+      id: diagnosis.id,
+      code: diagnosis.code,
+      recommendedCalories,
       allowedFoods,
       prohibitedFoods,
       dailyPlan,
     };
   }
 
+  // Новый endpoint для получения данных по ID в нужном формате
   @Get('id/:id')
-  async getDailyPlanById(@Param('id') id: string): Promise<DailyPlanWithIngredients> {
-    const dailyPlan = await this.dailyPlanService.findDailyPlanById(parseInt(id));
-    if (!dailyPlan) {
-      throw new NotFoundException('Daily plan not found');
+  async getDailyPlanById(@Param('id') id: string): Promise<DailyPlanResponseDto> {
+    const diagnosis = await this.diagnosisService.findDiagnosisById(parseInt(id));
+    
+    if (!diagnosis) {
+      throw new NotFoundException('Diagnosis not found');
     }
-    return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
+
+    // Разделяем продукты на разрешенные и запрещенные
+    const allowedFoods: string[] = [];
+    const prohibitedFoods: string[] = [];
+
+    diagnosis.foods.forEach(relation => {
+      if (relation.allowed) {
+        allowedFoods.push(relation.food.code);
+      } else {
+        prohibitedFoods.push(relation.food.code);
+      }
+    });
+
+    // Формируем daily plan в полном формате
+    const dailyPlan = diagnosis.dailyPlans.map(plan => ({
+      mealKey: plan.mealKey,
+      ingredients: plan.ingredients.map(ingredient => ingredient.food.code),
+      time: plan.time,
+      nutrition: {
+        calories: plan.calories,
+        proteins: plan.proteins,
+        fats: plan.fats,
+        carbs: plan.carbs,
+      },
+      weight_grams: plan.weightGrams,
+    }));
+
+    // Формируем recommendedCalories
+    const recommendedCalories = {
+      min: diagnosis.recommendedMinKcal,
+      max: diagnosis.recommendedMaxKcal,
+      unit: 'kcal',
+    };
+
+    return {
+      id: diagnosis.id,
+      code: diagnosis.code,
+      recommendedCalories,
+      allowedFoods,
+      prohibitedFoods,
+      dailyPlan,
+    };
   }
 
   @Post()
