@@ -24,7 +24,7 @@ npm run start:prod
 #### **Environment Variables:**
 - `NODE_ENV`: `production`
 - `DATABASE_URL`: (автоматически из базы данных)
-- `FRONTEND_URL`: `https://diet-app-frontend.onrender.com`
+- `FRONTEND_URL`: `https://diet-app-rho.vercel.app`
 - `PORT`: (автоматически от Render)
 
 ### **3. База данных:**
@@ -59,7 +59,7 @@ npm run start:prod
 Добавьте следующие переменные:
 ```
 NODE_ENV=production
-FRONTEND_URL=https://diet-app-frontend.onrender.com
+FRONTEND_URL=https://diet-app-rho.vercel.app
 ```
 
 ### **Шаг 5: Деплой**
@@ -98,7 +98,7 @@ FRONTEND_URL=https://diet-app-frontend.onrender.com
    npx prisma db seed
    ```
 
-2. **CORS:** Настроен для фронтенда на `https://diet-app-frontend.onrender.com`
+2. **CORS:** Настроен для фронтенда на `https://diet-app-rho.vercel.app`
 
 3. **Порт:** Приложение использует порт из переменной окружения `PORT`
 

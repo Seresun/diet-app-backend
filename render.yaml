@@ -12,7 +12,7 @@ services:
           name: diet-database
           property: connectionString
       - key: FRONTEND_URL
-        value: https://diet-app-frontend.onrender.com
+        value: https://diet-app-rho.vercel.app
     healthCheckPath: /api
 
 databases:

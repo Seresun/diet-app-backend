@@ -11,7 +11,9 @@ async function bootstrap() {
   
   // CORS configuration
   const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:5173'
+    process.env.FRONTEND_URL || 'http://localhost:5173',
+    'https://diet-app-rho.vercel.app',
+    'https://diet-app-frontend.onrender.com'
   ];
 
   app.enableCors({
