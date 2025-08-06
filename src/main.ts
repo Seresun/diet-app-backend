@@ -13,7 +13,8 @@ async function bootstrap() {
   const allowedOrigins = [
     process.env.FRONTEND_URL || 'http://localhost:5173',
     'https://diet-app-rho.vercel.app',
-    'https://diet-app-frontend.onrender.com'
+    'https://diet-app-frontend.onrender.com',
+    'https://diet-ayom2soyk-seresuns-projects.vercel.app'
   ];
 
   app.enableCors({
