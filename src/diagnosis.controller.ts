@@ -20,8 +20,39 @@ interface DiagnosisResponseDto {
     min: number;
     max: number;
   };
-  foods?: any[];
-  dailyPlans?: any[];
+  foods: Array<{
+    diagnosisId: number;
+    foodId: number;
+    allowed: boolean;
+    food: {
+      id: number;
+      code: string;
+      name: string | null;
+      type: string | null;
+    };
+  }>;
+  dailyPlans: Array<{
+    id: number;
+    diagnosisId: number;
+    time: string;
+    mealKey: string;
+    weightGrams: number | null;
+    calories: number | null;
+    proteins: number | null;
+    fats: number | null;
+    carbs: number | null;
+    ingredients: Array<{
+      id: number;
+      dailyPlanId: number;
+      foodId: number;
+      food: {
+        id: number;
+        code: string;
+        name: string | null;
+        type: string | null;
+      };
+    }>;
+  }>;
 }
 
 @Controller('diagnoses')
@@ -39,8 +70,8 @@ export class DiagnosisController {
         min: diagnosis.recommendedMinKcal || 0,
         max: diagnosis.recommendedMaxKcal || 0,
       },
-      foods: (diagnosis as any).foods,
-      dailyPlans: (diagnosis as any).dailyPlans,
+      foods: diagnosis.foods || [],
+      dailyPlans: diagnosis.dailyPlans || [],
     }));
   }
 
@@ -58,8 +89,8 @@ export class DiagnosisController {
         min: diagnosis.recommendedMinKcal || 0,
         max: diagnosis.recommendedMaxKcal || 0,
       },
-      foods: (diagnosis as any).foods,
-      dailyPlans: (diagnosis as any).dailyPlans,
+      foods: diagnosis.foods || [],
+      dailyPlans: diagnosis.dailyPlans || [],
     };
   }
 
@@ -77,8 +108,8 @@ export class DiagnosisController {
         min: diagnosis.recommendedMinKcal || 0,
         max: diagnosis.recommendedMaxKcal || 0,
       },
-      foods: (diagnosis as any).foods,
-      dailyPlans: (diagnosis as any).dailyPlans,
+      foods: diagnosis.foods || [],
+      dailyPlans: diagnosis.dailyPlans || [],
     };
   }
 
