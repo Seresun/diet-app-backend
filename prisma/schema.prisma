@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Diagnosis {
+  id                 Int                @id @default(autoincrement())
+  code               String             @unique   // "balanced_diet_general"
+  description        String?
+  recommendedMinKcal Int?
+  recommendedMaxKcal Int?
+  dailyPlans         DailyPlan[]
+  foods              DiagnosisFoodRelation[]
+}
+
+model Food {
+  id    Int                @id @default(autoincrement())
+  code  String             @unique   // "oatmeal"
+  name  String?            // можно оставить пустым, используем для расширений
+  type  FoodType?          // если нужно (ALLOWED/PROHIBITED как общий признак)
+  diagnoses DiagnosisFoodRelation[]
+  dailyPlanIngredients DailyPlanIngredient[]
+}
+
+model DiagnosisFoodRelation {
+  diagnosisId Int
+  foodId      Int
+  allowed     Boolean
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id])
+  food        Food      @relation(fields: [foodId], references: [id])
+  @@id([diagnosisId, foodId])
+}
+
+model DailyPlan {
+  id          Int         @id @default(autoincrement())
+  diagnosisId Int
+  time        String
+  mealKey     String      // например: "oatmeal_banana"
+  ingredients DailyPlanIngredient[]
+  weightGrams Int?
+  calories    Int?
+  proteins    Int?
+  fats        Int?
+  carbs       Int?
+  diagnosis   Diagnosis   @relation(fields: [diagnosisId], references: [id])
+}
+
+model DailyPlanIngredient {
+  id          Int      @id @default(autoincrement())
+  dailyPlanId Int
+  foodId      Int
+  dailyPlan   DailyPlan @relation(fields: [dailyPlanId], references: [id])
+  food        Food      @relation(fields: [foodId], references: [id])
+}
+
+enum FoodType {
+  ALLOWED
+  PROHIBITED
+}
