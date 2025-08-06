@@ -20,9 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "postinstall": "npx prisma generate && npx prisma migrate deploy && npx prisma db seed"
   },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
+
   "dependencies": {
     "@nestjs/cli": "^11.0.10",
     "@nestjs/common": "^11.0.1",
