@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Настройка глобального префикса для API
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api');
 
   // Настройка валидации
   app.useGlobalPipes(new ValidationPipe({
@@ -43,7 +43,7 @@ async function bootstrap() {
       - Установления связей между диагнозами и продуктами
       
       ## Версионирование
-      API использует версионирование через URL: \`/api/v1/\`
+      API использует базовый префикс: \`/api/\`
       
       ## Коды ошибок
       - **400** - Некорректные данные запроса
