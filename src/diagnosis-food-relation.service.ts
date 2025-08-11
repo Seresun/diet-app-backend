@@ -6,9 +6,13 @@ import { DiagnosisFoodRelation, Prisma } from '@prisma/client';
 export class DiagnosisFoodRelationService {
   constructor(private prisma: PrismaService) {}
 
-  async createRelation(data: Prisma.DiagnosisFoodRelationCreateInput): Promise<DiagnosisFoodRelation> {
+  async createRelation(data: Prisma.DiagnosisFoodRelationCreateInput): Promise<DiagnosisFoodRelation & { diagnosis: any; food: any }> {
     return await this.prisma.diagnosisFoodRelation.create({
       data,
+      include: {
+        diagnosis: true,
+        food: true,
+      },
     });
   }
 
@@ -71,7 +75,7 @@ export class DiagnosisFoodRelationService {
     diagnosisId: number,
     foodId: number,
     data: Prisma.DiagnosisFoodRelationUpdateInput,
-  ): Promise<DiagnosisFoodRelation> {
+  ): Promise<DiagnosisFoodRelation & { diagnosis: any; food: any }> {
     return await this.prisma.diagnosisFoodRelation.update({
       where: {
         diagnosisId_foodId: {
@@ -80,16 +84,24 @@ export class DiagnosisFoodRelationService {
         },
       },
       data,
+      include: {
+        diagnosis: true,
+        food: true,
+      },
     });
   }
 
-  async deleteRelation(diagnosisId: number, foodId: number): Promise<DiagnosisFoodRelation> {
+  async deleteRelation(diagnosisId: number, foodId: number): Promise<DiagnosisFoodRelation & { diagnosis: any; food: any }> {
     return await this.prisma.diagnosisFoodRelation.delete({
       where: {
         diagnosisId_foodId: {
           diagnosisId,
           foodId,
         },
+      },
+      include: {
+        diagnosis: true,
+        food: true,
       },
     });
   }

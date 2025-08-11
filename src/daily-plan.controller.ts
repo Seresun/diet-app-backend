@@ -7,59 +7,34 @@ import {
   Body,
   Param,
   NotFoundException,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { 
+  ApiTags, 
+  ApiOperation, 
+  ApiResponse, 
+  ApiParam, 
+  ApiBody 
+} from '@nestjs/swagger';
 import { DailyPlanService } from './daily-plan.service';
 import { DiagnosisService } from './diagnosis.service';
 import { DailyPlan, Prisma } from '@prisma/client';
+import {
+  DailyPlanResponseDto,
+  DailyPlanWithIngredientsDto,
+  CreateDailyPlanDto,
+  CreateDailyPlanWithIngredientsDto,
+  UpdateDailyPlanDto,
+} from './dto/daily-plan.dto';
+import {
+  ErrorResponseDto,
+  ValidationErrorResponseDto,
+  NotFoundErrorResponseDto,
+  InternalServerErrorResponseDto,
+} from './dto/error.dto';
 
-type DailyPlanWithIngredients = DailyPlan & {
-  ingredients: Array<{
-    id: number;
-    dailyPlanId: number;
-    foodId: number;
-    food: {
-      id: number;
-      code: string;
-      name: string | null;
-      type: string | null;
-    };
-  }>;
-  diagnosis: {
-    id: number;
-    code: string;
-    description: string | null;
-    recommendedMinKcal: number | null;
-    recommendedMaxKcal: number | null;
-  };
-};
-
-// Обновленный тип для ответа фронтенду
-interface DailyPlanResponseDto {
-  id: number;
-  code: string;
-  recommendedCalories: {
-    min: number | null;
-    max: number | null;
-    unit: string;
-  };
-  allowedFoods: string[];
-  prohibitedFoods: string[];
-  dailyPlan: Array<{
-    mealKey: string;
-    ingredients: string[];
-    time: string;
-    nutrition: {
-      calories: number | null;
-      proteins: number | null;
-      fats: number | null;
-      carbs: number | null;
-    };
-    weight_grams: number | null;
-  }>;
-}
-
-
-
+@ApiTags('Daily Plans')
 @Controller('daily-plan')
 export class DailyPlanController {
   constructor(
@@ -68,11 +43,49 @@ export class DailyPlanController {
   ) {}
 
   @Get()
-  async getAllDailyPlans(): Promise<DailyPlanWithIngredients[]> {
+  @ApiOperation({ 
+    summary: 'Получить все дневные планы',
+    description: 'Возвращает список всех дневных планов с ингредиентами'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Список дневных планов успешно получен',
+    type: [DailyPlanWithIngredientsDto]
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
+  async getAllDailyPlans(): Promise<DailyPlanWithIngredientsDto[]> {
     return await this.dailyPlanService.findAllDailyPlans();
   }
 
   @Get(':diagnosisId')
+  @ApiOperation({ 
+    summary: 'Получить дневной план по ID диагноза',
+    description: 'Возвращает дневной план питания для конкретного диагноза'
+  })
+  @ApiParam({ 
+    name: 'diagnosisId', 
+    description: 'ID диагноза',
+    example: 1
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Дневной план успешно найден',
+    type: DailyPlanResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Диагноз не найден',
+    type: NotFoundErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
   async getDailyPlanByDiagnosisId(@Param('diagnosisId') diagnosisId: string): Promise<DailyPlanResponseDto> {
     const diagnosis = await this.diagnosisService.findDiagnosisById(parseInt(diagnosisId));
     
@@ -123,8 +136,31 @@ export class DailyPlanController {
     };
   }
 
-  // Новый endpoint для получения данных по ID в нужном формате
   @Get('id/:id')
+  @ApiOperation({ 
+    summary: 'Получить дневной план по ID',
+    description: 'Возвращает дневной план питания по ID диагноза'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'ID диагноза',
+    example: 1
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Дневной план успешно найден',
+    type: DailyPlanResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Диагноз не найден',
+    type: NotFoundErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
   async getDailyPlanById(@Param('id') id: string): Promise<DailyPlanResponseDto> {
     const diagnosis = await this.diagnosisService.findDiagnosisById(parseInt(id));
     
@@ -176,25 +212,68 @@ export class DailyPlanController {
   }
 
   @Post()
-  async createDailyPlan(@Body() createDto: Prisma.DailyPlanCreateInput): Promise<DailyPlanWithIngredients> {
-    const dailyPlan = await this.dailyPlanService.createDailyPlan(createDto);
+  @ApiOperation({ 
+    summary: 'Создать новый дневной план',
+    description: 'Создаёт новый дневной план питания'
+  })
+  @ApiBody({ 
+    type: CreateDailyPlanDto,
+    description: 'Данные для создания дневного плана'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Дневной план успешно создан',
+    type: DailyPlanWithIngredientsDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Некорректные данные',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
+  @HttpCode(HttpStatus.CREATED)
+  async createDailyPlan(@Body() createDto: CreateDailyPlanDto): Promise<DailyPlanWithIngredientsDto> {
+    const dailyPlan = await this.dailyPlanService.createDailyPlan({
+      ...createDto,
+      diagnosis: {
+        connect: { id: createDto.diagnosisId }
+      }
+    });
     return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
   }
 
   @Post('with-ingredients')
+  @ApiOperation({ 
+    summary: 'Создать дневной план с ингредиентами',
+    description: 'Создаёт новый дневной план питания с указанными ингредиентами'
+  })
+  @ApiBody({ 
+    type: CreateDailyPlanWithIngredientsDto,
+    description: 'Данные для создания дневного плана с ингредиентами'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Дневной план с ингредиентами успешно создан',
+    type: DailyPlanWithIngredientsDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Некорректные данные',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
+  @HttpCode(HttpStatus.CREATED)
   async createDailyPlanWithIngredients(
-    @Body() createDto: {
-      diagnosisId: number;
-      time: string;
-      mealKey: string;
-      weightGrams?: number;
-      calories?: number;
-      proteins?: number;
-      fats?: number;
-      carbs?: number;
-      ingredients: Array<{ foodId: number }>;
-    },
-  ): Promise<DailyPlanWithIngredients> {
+    @Body() createDto: CreateDailyPlanWithIngredientsDto,
+  ): Promise<DailyPlanWithIngredientsDto> {
     const { ingredients, ...dailyPlanData } = createDto;
     const dailyPlan = await this.dailyPlanService.createDailyPlanWithIngredients(
       dailyPlanData,
@@ -204,15 +283,85 @@ export class DailyPlanController {
   }
 
   @Put(':id')
+  @ApiOperation({ 
+    summary: 'Обновить дневной план',
+    description: 'Обновляет существующий дневной план по ID'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'ID дневного плана',
+    example: 1
+  })
+  @ApiBody({ 
+    type: UpdateDailyPlanDto,
+    description: 'Данные для обновления дневного плана'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Дневной план успешно обновлён',
+    type: DailyPlanWithIngredientsDto
+  })
+  @ApiResponse({ 
+    status: 400, 
+    description: 'Некорректные данные',
+    type: ValidationErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Дневной план не найден',
+    type: NotFoundErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
   async updateDailyPlan(
     @Param('id') id: string,
-    @Body() updateDto: Prisma.DailyPlanUpdateInput,
-  ): Promise<DailyPlanWithIngredients> {
+    @Body() updateDto: UpdateDailyPlanDto,
+  ): Promise<DailyPlanWithIngredientsDto> {
     const dailyPlan = await this.dailyPlanService.updateDailyPlan(parseInt(id), updateDto);
     return this.dailyPlanService.ensureSafeIngredients(dailyPlan);
   }
 
   @Delete(':id')
+  @ApiOperation({ 
+    summary: 'Удалить дневной план',
+    description: 'Удаляет дневной план по ID'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'ID дневного плана',
+    example: 1
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Дневной план успешно удалён',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'number' },
+        diagnosisId: { type: 'number' },
+        time: { type: 'string' },
+        mealKey: { type: 'string' },
+        weightGrams: { type: 'number' },
+        calories: { type: 'number' },
+        proteins: { type: 'number' },
+        fats: { type: 'number' },
+        carbs: { type: 'number' }
+      }
+    }
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Дневной план не найден',
+    type: NotFoundErrorResponseDto
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Внутренняя ошибка сервера',
+    type: InternalServerErrorResponseDto
+  })
   async deleteDailyPlan(@Param('id') id: string): Promise<DailyPlan> {
     return await this.dailyPlanService.deleteDailyPlan(parseInt(id));
   }
